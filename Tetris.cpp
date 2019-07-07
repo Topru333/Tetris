@@ -8,7 +8,7 @@
 
 using namespace std;
 
-wstring tetromino[7];
+wstring figures[7];
 const int w = 4;
 
 const int nFieldWidth  = 12;
@@ -21,6 +21,37 @@ const int nScreenHeight = 30;     // Console Screen Size Y (rows)
 vector<int> vLines;
 
 int nScore;
+
+class Display {
+public:
+	Display(int _nScreenWidth, int _nScreenHeight) {
+		screenWidth = _nScreenWidth;
+		screenHeight = _nScreenHeight;
+
+		hConsole = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, NULL, CONSOLE_TEXTMODE_BUFFER, NULL);
+		SetConsoleActiveScreenBuffer(hConsole);
+		COORD sizeOfBuff;
+		sizeOfBuff.X = nScreenWidth;
+		sizeOfBuff.Y = nScreenHeight;
+		SetConsoleScreenBufferSize(hConsole, sizeOfBuff);
+		HWND hwnd = GetConsoleWindow();
+		if (hwnd != NULL) {
+			SetWindowPos(hwnd, 0, 0, 0, 680, 500, SWP_SHOWWINDOW | SWP_NOMOVE);
+		}
+	}
+
+	void Draw(wchar_t* _screen) {
+		WriteConsoleOutputCharacter(hConsole, _screen, screenWidth * screenHeight, { 0,0 }, &dwBytesWritten);
+	}
+
+	void Close() {
+		CloseHandle(hConsole);
+	}
+private:
+	int screenWidth, screenHeight;
+	HANDLE hConsole;
+	DWORD dwBytesWritten = 0;
+};
 
 int Rotate(int px, int py, int r) {
 	switch (r % w) {
@@ -47,7 +78,7 @@ bool DoesPieceFit(int nTetromino, int nRotation, int nPosX, int nPosY) {
 
 			if (curX >= 0 && curX < nFieldWidth) {
 				if (curY >= 0 && curY < nFieldHeight) {
-					if (tetromino[nTetromino][pi] == L'X' && pField[fi] != 0) {
+					if (figures[nTetromino][pi] == L'X' && pField[fi] != 0) {
 						return false;
 					}
 				}
@@ -57,43 +88,48 @@ bool DoesPieceFit(int nTetromino, int nRotation, int nPosX, int nPosY) {
 	return true;
 }
 
-void StartGame(HANDLE hConsole) {
+wstring* setFigures(wstring *_figures) {
+
 	// Create assets
-	tetromino[0].append(L"..X.");
-	tetromino[0].append(L"..X.");
-	tetromino[0].append(L"..X.");
-	tetromino[0].append(L"..X.");
+	_figures[0].append(L"..X.");
+	_figures[0].append(L"..X.");
+	_figures[0].append(L"..X.");
+	_figures[0].append(L"..X.");
 
-	tetromino[1].append(L".X..");
-	tetromino[1].append(L".XX.");
-	tetromino[1].append(L"..X.");
-	tetromino[1].append(L"....");
+	_figures[1].append(L".X..");
+	_figures[1].append(L".XX.");
+	_figures[1].append(L"..X.");
+	_figures[1].append(L"....");
 
-	tetromino[2].append(L".X..");
-	tetromino[2].append(L".XX.");
-	tetromino[2].append(L"..X.");
-	tetromino[2].append(L"....");
+	_figures[2].append(L".X..");
+	_figures[2].append(L".XX.");
+	_figures[2].append(L"..X.");
+	_figures[2].append(L"....");
 
-	tetromino[3].append(L".XX.");
-	tetromino[3].append(L".XX.");
-	tetromino[3].append(L"....");
-	tetromino[3].append(L"....");
+	_figures[3].append(L".XX.");
+	_figures[3].append(L".XX.");
+	_figures[3].append(L"....");
+	_figures[3].append(L"....");
 
-	tetromino[4].append(L"..X.");
-	tetromino[4].append(L".XX.");
-	tetromino[4].append(L"..X.");
-	tetromino[4].append(L"....");
+	_figures[4].append(L"..X.");
+	_figures[4].append(L".XX.");
+	_figures[4].append(L"..X.");
+	_figures[4].append(L"....");
 
-	tetromino[5].append(L".XX.");
-	tetromino[5].append(L"..X.");
-	tetromino[5].append(L"..X.");
-	tetromino[5].append(L"....");
+	_figures[5].append(L".XX.");
+	_figures[5].append(L"..X.");
+	_figures[5].append(L"..X.");
+	_figures[5].append(L"....");
 
-	tetromino[6].append(L".XX.");
-	tetromino[6].append(L".X..");
-	tetromino[6].append(L".X..");
-	tetromino[6].append(L"....");
+	_figures[6].append(L".XX.");
+	_figures[6].append(L".X..");
+	_figures[6].append(L".X..");
+	_figures[6].append(L"....");
 
+	return _figures;
+}
+
+void StartGame(Display display) {
 	pField = new unsigned char[nFieldWidth * nFieldHeight]; // Create play field buffer
 	for (int x = 0; x < nFieldWidth; x++) { // Board Boundary
 		for (int y = 0; y < nFieldHeight; y++) {
@@ -107,10 +143,6 @@ void StartGame(HANDLE hConsole) {
 	for (int i = 0; i < count; i++) {
 		screen[i] = L' ';
 	}
-
-	
-	DWORD dwBytesWritten = 0;
-
 	
 
 	// Game Logic Stuff
@@ -172,7 +204,7 @@ void StartGame(HANDLE hConsole) {
 				// It can't! Lock the piece in place
 				for (int px = 0; px < w; px++) {
 					for (int py = 0; py < w; py++) {
-						if (tetromino[nCurrentPiece][Rotate(px, py, nCurrentRotation)] != L'.') {
+						if (figures[nCurrentPiece][Rotate(px, py, nCurrentRotation)] != L'.') {
 							pField[(nCurrentY + py) * nFieldWidth + (nCurrentX + px)] = nCurrentPiece + 1;
 						}
 					}
@@ -221,7 +253,7 @@ void StartGame(HANDLE hConsole) {
 		// Draw Current Piece
 		for (int px = 0; px < w; px++) {
 			for (int py = 0; py < w; py++) {
-				if (tetromino[nCurrentPiece][Rotate(px, py, nCurrentRotation)] != L'.') {
+				if (figures[nCurrentPiece][Rotate(px, py, nCurrentRotation)] != L'.') {
 					screen[(nCurrentY + py + 2) * nScreenWidth + (nCurrentX + px + 2)] = nCurrentPiece + 65;
 				}
 			}
@@ -234,7 +266,7 @@ void StartGame(HANDLE hConsole) {
 		if (!vLines.empty())
 		{
 			// Display Frame (cheekily to draw lines)
-			WriteConsoleOutputCharacter(hConsole, screen, nScreenWidth * nScreenHeight, { 0,0 }, &dwBytesWritten);
+			display.Draw(screen);
 			this_thread::sleep_for(400ms); // Delay a bit
 
 			for (auto& v : vLines)
@@ -250,13 +282,17 @@ void StartGame(HANDLE hConsole) {
 		}
 
 		// Display Frame
-		WriteConsoleOutputCharacter(hConsole, screen, count, { 0,0 }, &dwBytesWritten);
+		display.Draw(screen);
 	}
 
 }
 
+
+
 int main()
 {
+	setFigures(figures);
+
 	while (true) {
 		
 		if (nScore > 0) {
@@ -264,28 +300,18 @@ int main()
 			nScore = 0;
 		}
 		
-		cout << "Do you want to start game?" << endl;
+		cout << "Do you want to start the game?" << endl;
 		std::string line;
 		cin >> line;
 		std::transform(line.begin(), line.end(), line.begin(), 
 			[](unsigned char c) { return std::tolower(c); });
 		if (static_cast<int>(line.find("yes")) > -1) {
-			HANDLE hConsole = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, NULL, CONSOLE_TEXTMODE_BUFFER, NULL);
-			SetConsoleActiveScreenBuffer(hConsole);
-			COORD sizeOfBuff;
-			sizeOfBuff.X = nScreenWidth;
-			sizeOfBuff.Y = nScreenHeight;
-			SetConsoleScreenBufferSize(hConsole, sizeOfBuff);
-			DWORD dwBytesWritten = 0;
 
-			HWND hwnd = GetConsoleWindow();
-			if (hwnd != NULL) {
-				SetWindowPos(hwnd, 0, 0, 0, 680, 500, SWP_SHOWWINDOW | SWP_NOMOVE);
-			}
+			Display display(nScreenWidth, nScreenHeight);
 
-			StartGame(hConsole);
+			StartGame(display);
 
-			CloseHandle(hConsole);
+			display.Close();
 		}
 		else {
 			break;
