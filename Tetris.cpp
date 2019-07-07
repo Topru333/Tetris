@@ -5,10 +5,8 @@
 #include <vector>
 #include <algorithm>
 
-
 using namespace std;
 
-wstring figures[7];
 const int w = 4;
 
 const int nFieldWidth  = 12;
@@ -19,38 +17,39 @@ const int nScreenWidth  = 80;     // Console Screen Size X (columns)
 const int nScreenHeight = 30;     // Console Screen Size Y (rows)
 
 vector<int> vLines;
+vector<wstring> figures;
 
 int nScore;
 
 class Display {
 public:
-	Display(int _nScreenWidth, int _nScreenHeight) {
-		screenWidth = _nScreenWidth;
-		screenHeight = _nScreenHeight;
+	Display(int screenWidth, int screenHeight) : _screenWidth(screenWidth), _screenHeight(screenHeight) {
+		_hConsole = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, NULL, CONSOLE_TEXTMODE_BUFFER, NULL);
+		SetConsoleActiveScreenBuffer(_hConsole);
 
-		hConsole = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, NULL, CONSOLE_TEXTMODE_BUFFER, NULL);
-		SetConsoleActiveScreenBuffer(hConsole);
 		COORD sizeOfBuff;
 		sizeOfBuff.X = nScreenWidth;
 		sizeOfBuff.Y = nScreenHeight;
-		SetConsoleScreenBufferSize(hConsole, sizeOfBuff);
+		SetConsoleScreenBufferSize(_hConsole, sizeOfBuff);
+
 		HWND hwnd = GetConsoleWindow();
 		if (hwnd != NULL) {
 			SetWindowPos(hwnd, 0, 0, 0, 680, 500, SWP_SHOWWINDOW | SWP_NOMOVE);
 		}
 	}
 
-	void Draw(wchar_t* _screen) {
-		WriteConsoleOutputCharacter(hConsole, _screen, screenWidth * screenHeight, { 0,0 }, &dwBytesWritten);
+	~Display() {
+		CloseHandle(_hConsole);
 	}
 
-	void Close() {
-		CloseHandle(hConsole);
+	void Draw(const wchar_t* _screen) {
+		WriteConsoleOutputCharacter(_hConsole, _screen, _screenWidth * _screenHeight, { 0,0 }, &_dwBytesWritten);
 	}
+
 private:
-	int screenWidth, screenHeight;
-	HANDLE hConsole;
-	DWORD dwBytesWritten = 0;
+	int _screenWidth, _screenHeight;
+	HANDLE _hConsole;
+	DWORD _dwBytesWritten = 0;
 };
 
 int Rotate(int px, int py, int r) {
@@ -88,48 +87,18 @@ bool DoesPieceFit(int nTetromino, int nRotation, int nPosX, int nPosY) {
 	return true;
 }
 
-wstring* setFigures(wstring *_figures) {
-
-	// Create assets
-	_figures[0].append(L"..X.");
-	_figures[0].append(L"..X.");
-	_figures[0].append(L"..X.");
-	_figures[0].append(L"..X.");
-
-	_figures[1].append(L".X..");
-	_figures[1].append(L".XX.");
-	_figures[1].append(L"..X.");
-	_figures[1].append(L"....");
-
-	_figures[2].append(L".X..");
-	_figures[2].append(L".XX.");
-	_figures[2].append(L"..X.");
-	_figures[2].append(L"....");
-
-	_figures[3].append(L".XX.");
-	_figures[3].append(L".XX.");
-	_figures[3].append(L"....");
-	_figures[3].append(L"....");
-
-	_figures[4].append(L"..X.");
-	_figures[4].append(L".XX.");
-	_figures[4].append(L"..X.");
-	_figures[4].append(L"....");
-
-	_figures[5].append(L".XX.");
-	_figures[5].append(L"..X.");
-	_figures[5].append(L"..X.");
-	_figures[5].append(L"....");
-
-	_figures[6].append(L".XX.");
-	_figures[6].append(L".X..");
-	_figures[6].append(L".X..");
-	_figures[6].append(L"....");
-
-	return _figures;
+void setFigures(vector<wstring> &_figures) {
+	_figures.clear();
+	_figures.push_back({ L"..X." L"..X." L"..X." L"..X." });
+	_figures.push_back({ L".X.." L".XX." L"..X." L"...." });
+	_figures.push_back({ L"..X." L".XX." L".X.." L"...." });
+	_figures.push_back({ L".XX." L".XX." L"...." L"...." });
+	_figures.push_back({ L"..X." L".XX." L"..X." L"...." });
+	_figures.push_back({ L".XX." L"..X." L"..X." L"...." });
+	_figures.push_back({ L".XX." L".X.." L".X.." L"...." });
 }
 
-void StartGame(Display display) {
+void StartGame(Display &display) {
 	pField = new unsigned char[nFieldWidth * nFieldHeight]; // Create play field buffer
 	for (int x = 0; x < nFieldWidth; x++) { // Board Boundary
 		for (int y = 0; y < nFieldHeight; y++) {
@@ -287,12 +256,9 @@ void StartGame(Display display) {
 
 }
 
-
-
-int main()
-{
+int main() {
 	setFigures(figures);
-
+	
 	while (true) {
 		
 		if (nScore > 0) {
@@ -306,12 +272,8 @@ int main()
 		std::transform(line.begin(), line.end(), line.begin(), 
 			[](unsigned char c) { return std::tolower(c); });
 		if (static_cast<int>(line.find("yes")) > -1) {
-
 			Display display(nScreenWidth, nScreenHeight);
-
 			StartGame(display);
-
-			display.Close();
 		}
 		else {
 			break;
