@@ -1,9 +1,9 @@
 #include <iostream>
 #include <string> 
 #include <thread>
-#include <Windows.h>
 #include <vector>
 #include <algorithm>
+#include "Display.h";
 
 using namespace std;
 
@@ -20,37 +20,6 @@ vector<int> vLines;
 vector<wstring> figures;
 
 int nScore;
-
-class Display {
-public:
-	Display(int screenWidth, int screenHeight) : _screenWidth(screenWidth), _screenHeight(screenHeight) {
-		_hConsole = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, NULL, CONSOLE_TEXTMODE_BUFFER, NULL);
-		SetConsoleActiveScreenBuffer(_hConsole);
-
-		COORD sizeOfBuff;
-		sizeOfBuff.X = nScreenWidth;
-		sizeOfBuff.Y = nScreenHeight;
-		SetConsoleScreenBufferSize(_hConsole, sizeOfBuff);
-
-		HWND hwnd = GetConsoleWindow();
-		if (hwnd != NULL) {
-			SetWindowPos(hwnd, 0, 0, 0, 680, 500, SWP_SHOWWINDOW | SWP_NOMOVE);
-		}
-	}
-
-	~Display() {
-		CloseHandle(_hConsole);
-	}
-
-	void Draw(const wchar_t* _screen) {
-		WriteConsoleOutputCharacter(_hConsole, _screen, _screenWidth * _screenHeight, { 0,0 }, &_dwBytesWritten);
-	}
-
-private:
-	int _screenWidth, _screenHeight;
-	HANDLE _hConsole;
-	DWORD _dwBytesWritten = 0;
-};
 
 int Rotate(int px, int py, int r) {
 	switch (r % w) {
